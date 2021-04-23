@@ -40,7 +40,6 @@ for i in `cat $BAMLIST`; do
         if [ $i == $j ]; then continue; fi
         norm=`basename $i|cut -d "." -f1`
         tum=`basename $j|cut -d "." -f1`
-        # OUTDIR=$PWD/mutect2.v3/${norm}_${tum}/
         OUTDIR=$(readlink -f $MUTECTOUT)/${norm}_${tum}
         if [ -f $OUTDIR/${norm}_${tum}.mutect2.v3.vcf.gz.tbi ]; then continue; fi
         rm -f $OUTDIR/${norm}_${tum}.mutect2.v3.vcf*
