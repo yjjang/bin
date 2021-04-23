@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+if [[ $# -lt 1 ]]; then
+    echo "Usage: $(basename $0) <queue name>"
+    exit 1
+fi
+
+watch --interval=2 "qstat |grep $1"
+

@@ -1,0 +1,47 @@
+#!/bin/bash
+
+usage="usage: $(basename $0) -t <tools_info.txt> [-r <chr or BED file> -q <SGE queue> -d <out dir>] <sample_list.txt>"
+
+while getopts t:r:q:d: opt; do
+    case $opt in
+        t) TOOLINFO=$OPTARG;;
+        r) BED=$OPTARG;;
+        q) Q=$OPTARG;;
+        d) MUTECTOUT=$OPTARG;;
+    ?) echo $usage; exit 1
+    esac
+done
+
+shift $(($OPTIND-1))
+
+if [ -z $TOOLINFO ] || [ $# -lt 1 ]; then
+    echo $usage; exit 1
+fi
+
+TOOLINFO=`readlink -f $TOOLINFO`
+SAMPLE_LIST=`readlink -f $1`
+
+source $TOOLINFO
+
+if [[ "$(head -1 $REF_GENOME)" =~ ^\>chr.* ]]; then
+    CHRS="$(seq -s ':' -f 'chr%g' 22):chrX:chrY"
+else
+    CHRS="$(seq -s ':' 22):X:Y"
+fi
+
+if [ -z $Q ]; then Q="1-day"; fi
+if [ -z $MUTECTOUT ]; then MUTECTOUT="mutect2"; fi
+
+grep -v ^# $SAMPLE_LIST |cut -f1 |sort -u |while read SM; do
+    OUTDIR=$(readlink -f $MUTECTOUT)/$SM
+    # if [ -d $OUTDIR ]; then continue; fi
+    mkdir -p $OUTDIR/logs $OUTDIR/run_status $OUTDIR/tmp
+    echo "Tumor only somatic calling for $SM ..."
+    JID=$(qsub -cwd -o $OUTDIR/logs -q $Q -r y -j y -m a -b y -t 1-24 \
+               -l h_vmem=40G -l h_stack=10M -N mutect2.tumor_only.$SM \
+               $(dirname $0)/mutect2.tumor_only.sh \
+               $SM $SAMPLE_LIST $OUTDIR "$CHRS" $TOOLINFO $BED \
+               |tee /dev/tty |awk '{split($3, a, "."); print a[1]}')
+    qsub -cwd -hold_jid $JID -q $Q -o $OUTDIR/logs -j y \
+         $(dirname $0)/mutect2.gather_vcfs.sh $SM $OUTDIR "$CHRS" $TOOLINFO
+done

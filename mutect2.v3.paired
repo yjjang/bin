@@ -1,0 +1,61 @@
+#!/bin/bash
+
+usage="usage: $(basename $0) -t <tool_info.txt> [-r <chr or BED file> -q <SGE queue> -d <out dir>] <sample_list.txt>"
+
+while getopts t:r:q:d: opt; do
+    case $opt in
+        t) TOOLINFO=$OPTARG;;
+        r) BED=$OPTARG;;
+        q) Q=$OPTARG;;
+        d) MUTECTOUT=$OPTARG;;
+    ?) echo $usage; exit 1
+    esac
+done
+
+shift $(($OPTIND-1))
+
+if [ -z $TOOLINFO ] || [ $# -lt 1 ]; then
+    echo $usage; exit 1
+fi
+
+TOOLINFO=`readlink -f $TOOLINFO`
+MEMINFO=/research/bsi/tools/pipelines/genome_gps/5.0.2/scripts/config/memory_info.txt
+SAMPLE_LIST=$1
+
+source $TOOLINFO
+
+if [[ "$(head -1 $REF_GENOME)" =~ ^\>chr.* ]]; then
+    CHRS="$(seq -s ' ' -f 'chr%g' 22) chrX chrY"
+else
+    CHRS="$(seq -s ' ' 22) X Y"
+fi
+
+if [ -z $Q ]; then Q="1-day"; fi
+if [ -z $MUTECTOUT ]; then MUTECTOUT="mutect2.v3"; fi
+
+grep -v ^# $SAMPLE_LIST |while read SM NSM NBAM TSM TBAM; do
+    OUTDIR=$(readlink -f $MUTECTOUT)/$SM
+    if [ -f $OUTDIR/$SM.mutect2.v3.vcf.gz.tbi ]; then continue; fi
+    rm -f $OUTDIR/$SM.mutect2.v3.vcf*
+    mkdir -p $OUTDIR/logs
+    echo "Paired somatic calling for $SM ..."
+    JIDS=()
+    for chr in $CHRS; do
+        if [ -f $OUTDIR/$SM.$chr.mutect2.v3.vcf.gz.tbi ]; then continue; fi
+        rm -f $OUTDIR/$SM.$chr.mutect2.v3.vcf*
+        if [ -z $BED ]; then
+            INTERVALS=$chr
+        else
+            INTERVALS=$OUTDIR/intervals_$chr.bed
+            grep -w ^$chr $BED > $INTERVALS
+        fi
+        JID=$(/usr/local/sOGE/sge-8.1.9/bin/lx-amd64/qsub \
+                -wd $OUTDIR/logs -q $Q -r y -m a -b y \
+                -l h_vmem=20G -l h_stack=10M -N mutect2.v3.$SM.$chr \
+                /research/bsi/tools/pipelines/genome_gps/5.0.2/scripts/mutect2.sh \
+                  -b $NBAM -T $TOOLINFO -o $OUTDIR -v $SM.$chr.mutect2.v3.vcf -t $TBAM -M $MEMINFO -l $INTERVALS \
+              |tee /dev/tty |awk '{split($3, a, "."); print a[1]}')
+        JIDS+=($JID)
+    done
+    qsub -hold_jid $(IFS=,; echo "${JIDS[*]}") -q $Q -o $OUTDIR/logs $(dirname $0)/mutect2.v3.concat_vcfs.sh $OUTDIR "$CHRS" $TOOLINFO
+done
