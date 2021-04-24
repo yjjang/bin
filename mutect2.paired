@@ -32,11 +32,13 @@ fi
 if [ -z $Q ]; then Q="1-day"; fi
 if [ -z $MUTECTOUT ]; then MUTECTOUT="mutect2"; fi
 
-grep -v ^# $SAMPLE_LIST |while read SM NSM NBAM TSM TBAM; do
+grep -v ^# $SAMPLE_LIST |while read SM NBAM TBAM; do
+    NSM=`$SAMTOOLS view -H $NBAM |grep '^@RG' |sed "s/.*SM:\([^\t]*\).*/\1/g" |uniq`
+    TSM=`$SAMTOOLS view -H $TBAM |grep '^@RG' |sed "s/.*SM:\([^\t]*\).*/\1/g" |uniq`
     OUTDIR=$(readlink -f $MUTECTOUT)/$SM
     # if [ -d $OUTDIR ]; then continue; fi
     mkdir -p $OUTDIR/logs $OUTDIR/run_status $OUTDIR/tmp
-    echo "Paired somatic calling for $SM ..."
+    echo "Paired somatic calling for $SM ($NSM vs. $TSM) ..."
     JID=$(qsub -cwd -o $OUTDIR/logs -q $Q -r y -j y -m a -b y -t 1-24 \
                -l h_vmem=40G -l h_stack=10M -N mutect2.paired.$SM \
                $(dirname $0)/mutect2.sh \

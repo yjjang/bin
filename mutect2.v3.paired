@@ -33,12 +33,14 @@ fi
 if [ -z $Q ]; then Q="1-day"; fi
 if [ -z $MUTECTOUT ]; then MUTECTOUT="mutect2.v3"; fi
 
-grep -v ^# $SAMPLE_LIST |while read SM NSM NBAM TSM TBAM; do
+grep -v ^# $SAMPLE_LIST |while read SM NBAM TBAM; do
+    NSM=`$SAMTOOLS/samtools view -H $NBAM |grep '^@RG' |sed "s/.*SM:\([^\t]*\).*/\1/g" |uniq`
+    TSM=`$SAMTOOLS/samtools view -H $TBAM |grep '^@RG' |sed "s/.*SM:\([^\t]*\).*/\1/g" |uniq`
     OUTDIR=$(readlink -f $MUTECTOUT)/$SM
     if [ -f $OUTDIR/$SM.mutect2.v3.vcf.gz.tbi ]; then continue; fi
     rm -f $OUTDIR/$SM.mutect2.v3.vcf*
     mkdir -p $OUTDIR/logs
-    echo "Paired somatic calling for $SM ..."
+    echo "Paired somatic calling for $SM ($NSM vs. $TSM) ..."
     JIDS=()
     for chr in $CHRS; do
         if [ -f $OUTDIR/$SM.$chr.mutect2.v3.vcf.gz.tbi ]; then continue; fi

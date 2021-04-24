@@ -29,7 +29,7 @@ set -eu -o pipefail
 DONE1=$OUTDIR/run_status/$SM.Mutect2.$CHR.done
 DONE2=$OUTDIR/run_status/$SM.FilterMutectCalls.$CHR.done
 
-IN=$(awk -v S=$SM '$1==S {print $3}' $SMF |sed 's/^/-I /')
+IN=$(awk -v S=$SM '$1==S {print $2}' $SMF |sed 's/^/-I /')
 CHR_RAW_VCF=$OUTDIR/$SM.$CHR.raw.vcf.gz
 CHR_VCF=${CHR_RAW_VCF/.raw.vcf.gz/.vcf.gz}
 
