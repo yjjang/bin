@@ -1,0 +1,42 @@
+#!/bin/bash
+
+usage="usage: $(basename $0) -t <tool_info.txt> [-q <SGE queue> -d <out dir>] <sample_list.txt>"
+
+while getopts t:r:q:d: opt; do
+    case $opt in
+        t) TOOLINFO=$OPTARG;;
+        q) Q=$OPTARG;;
+        d) STRELKAOUT=$OPTARG;;
+    ?) echo $usage; exit 1
+    esac
+done
+
+shift $(($OPTIND-1))
+
+if [ -z $TOOLINFO ] || [ $# -lt 1 ]; then
+    echo $usage; exit 1
+fi
+
+TOOLINFO=`readlink -f $TOOLINFO`
+MEMINFO=/research/bsi/tools/pipelines/genome_gps/5.0.2/scripts/config/memory_info.txt
+SAMPLE_LIST=$1
+
+source $TOOLINFO
+
+if [ -z $Q ]; then Q="4-day"; fi
+if [ -z $STRELKAOUT ]; then STRELKAOUT="strelka"; fi
+
+grep -v ^# $SAMPLE_LIST |while read SM NBAM TBAM; do
+    NSM=`$SAMTOOLS/samtools view -H $NBAM |grep '^@RG' |sed "s/.*SM:\([^\t]*\).*/\1/g" |uniq`
+    TSM=`$SAMTOOLS/samtools view -H $TBAM |grep '^@RG' |sed "s/.*SM:\([^\t]*\).*/\1/g" |uniq`
+    OUTDIR=$(readlink -f $STRELKAOUT)/$SM
+    if [ -f $OUTDIR/$SM.strelka.vcf.gz.tbi ]; then continue; fi
+    rm -f $OUTDIR/$SM.strelka.vcf*
+    mkdir -p $OUTDIR/logs
+    echo "Paired somatic calling for $SM ($NSM vs. $TSM) ..."
+    /usr/local/sOGE/sge-8.1.9/bin/lx-amd64/qsub \
+      -wd $OUTDIR/logs -q $Q -m a -b y \
+      -l h_vmem=20G -l h_stack=10M -N strelka.$SM \
+      /research/bsi/tools/pipelines/genome_gps/5.0.2/scripts/strelka.sh \
+        -b $NBAM -T $TOOLINFO -o $OUTDIR -v $SM.strelka.vcf.gz -t $TBAM -M $MEMINFO
+done

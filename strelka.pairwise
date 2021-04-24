@@ -1,0 +1,49 @@
+#!/bin/bash
+
+usage="usage: $(basename $0) -t <tool_info.txt> [-q <SGE queue> -d <out dir>] <BAM list file>"
+
+while getopts t:r:q:d: opt; do
+    case $opt in
+        t) TOOLINFO=$OPTARG;;
+        q) Q=$OPTARG;;
+        d) STRELKAOUT=$OPTARG;;
+    ?) echo $usage; exit 1
+    esac
+done
+
+shift $(($OPTIND-1))
+
+if [ -z $TOOLINFO ] || [ $# -lt 1 ]; then
+    echo $usage; exit 1
+fi
+
+TOOLINFO=`readlink -f $TOOLINFO`
+MEMINFO=/research/bsi/tools/pipelines/genome_gps/5.0.2/scripts/config/memory_info.txt
+BAMLIST=$1
+
+source $TOOLINFO
+
+if [ -z $Q ]; then Q="4-day"; fi
+if [ -z $STRELKAOUT ]; then STRELKAOUT="strelka"; fi
+
+for i in `cat $BAMLIST`; do
+    i=`readlink -f $i`
+    for j in `cat $BAMLIST`; do
+        j=`readlink -f $j`
+        if [ $i == $j ]; then continue; fi
+        #norm=`basename $i|cut -d "." -f1`
+        #tum=`basename $j|cut -d "." -f1`
+        norm=`$SAMTOOLS/samtools view -H $i |grep '^@RG' |sed "s/.*SM:\([^\t]*\).*/\1/g" |uniq`
+        tum=`$SAMTOOLS/samtools view -H $j |grep '^@RG' |sed "s/.*SM:\([^\t]*\).*/\1/g" |uniq`
+        OUTDIR=$(readlink -f $STRELKAOUT)/${norm}_${tum}
+        if [ -f $OUTDIR/${norm}_${tum}.strelka.vcf.gz.tbi ]; then continue; fi
+        rm -f $OUTDIR/${norm}_${tum}.strelka.vcf*
+        mkdir -p $OUTDIR/logs
+        echo "$norm vs. $tum"
+        /usr/local/sOGE/sge-8.1.9/bin/lx-amd64/qsub \
+          -wd $OUTDIR/logs -q $Q -m a -b y \
+          -l h_vmem=20G -l h_stack=10M -N strelka.${norm}_${tum} \
+          /research/bsi/tools/pipelines/genome_gps/5.0.2/scripts/strelka.sh \
+            -b $i -T $TOOLINFO -o $OUTDIR -v ${norm}_${tum}.strelka.vcf.gz -t $j -M $MEMINFO
+    done
+done
