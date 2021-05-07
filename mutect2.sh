@@ -5,7 +5,7 @@ trap "exit 100" ERR
 
 if [[ $# -lt 7 ]]; then
     echo "Usage: $(basename $0) <normal sample> <normal bam> <tumor sample> <tumor bam> <out dir> <chrs> <toolinfo> <BED file>"
-    exit 1
+    false
 fi
 
 NSM=$1

@@ -6,7 +6,7 @@ trap "exit 100" ERR
 
 if [[ $# -lt 1 ]]; then
     echo "Usage: $(basename $0) <pair> <out dir> <chrs> <toolinfo>"
-    exit 1
+    false
 fi
 
 PAIR=$1

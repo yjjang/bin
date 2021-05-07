@@ -24,7 +24,8 @@ for B1 in $BAMLIST; do
     for B2 in $BAMLIST; do
         if [ $B1 = $B2 ]; then continue; fi
         N2=$(basename $B2); N2=${N2/.bam/}
-        echo -e "$N1\t$N2\t$(readlink -f $VCFDIR/${N1}_${N2}.vcf)"
+        # echo -e "$N1\t$N2\t$(readlink -f $VCFDIR/${N1}_${N2}.vcf)"
+        echo -e "$N1\t$N2\t$(readlink -f $VCFDIR/${N1}_${N2}/${N1}_${N2}.mutect2.vcf.gz)"
     done
 done |sed "1i#Control\tCase\tFilename" >$OUTFILE
 

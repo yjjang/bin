@@ -6,7 +6,7 @@ trap "exit 100" ERR
 
 if [[ $# -lt 5 ]]; then
     echo "Usage: $(basename $0) <sample name> <sample list file> <out dir> <chrs> <toolinfo> <BED file>"
-    exit 1
+    false
 fi
 
 SM=$1

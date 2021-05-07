@@ -25,9 +25,9 @@ SAMPLE_LIST=$1
 source $TOOLINFO
 
 if [[ "$(head -1 $REF_GENOME)" =~ ^\>chr.* ]]; then
-    CHRS="$(seq -s ' ' -f 'chr%g' 22) chrX chrY"
+    CHRS="chrM $(seq -s ' ' -f 'chr%g' 22) chrX chrY"
 else
-    CHRS="$(seq -s ' ' 22) X Y"
+    CHRS="$(seq -s ' ' 22) X Y MT"
 fi
 
 if [ -z $Q ]; then Q="1-day"; fi
