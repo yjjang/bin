@@ -46,6 +46,7 @@ else
 
     $BCFTOOLS index -t $RAW_VCF
     $BCFTOOLS index -t $VCF
+    $BCFTOOLS view -f PASS $VCF >${VCF/.vcf.gz/.PASS.vcf}
     touch $DONE
 fi
 
