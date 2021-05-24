@@ -42,8 +42,8 @@ for D in $(ls -d $MUTECT2_OUT/*); do
     OUT=$MERGED_OUT/txt/$PAIR.txt
     # if [ -f $OUT ]; then continue; fi
     echo $PAIR
-    # V1=$D/$PAIR.mutect2.vcf.gz
-    V1=$D/$PAIR.mutect2.v3.vcf.gz
+    V1=$D/$PAIR.mutect2.vcf.gz
+    # V1=$D/$PAIR.mutect2.v3.vcf.gz
     V2=$STRELKA2_OUT/$PAIR/$PAIR.strelka.vcf.gz
     if [ -z $REGIONS ]; then
         if [[ $(zgrep -v '^#' $V1 | head -1) =~ ^chr ]]; then

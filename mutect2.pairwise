@@ -1,6 +1,6 @@
 #!/bin/bash
 
-usage="usage: $(basename $0) -t <tools_info.txt> [-r <chr or BED file> -q <SGE queue> -d <out dir>] <BAM list file>"
+usage="usage: $(basename $0) -t <tools_info.txt> [-r <BED file> -q <SGE queue> -d <out dir>] <BAM list file>"
 
 while getopts t:r:q:d: opt; do
     case $opt in
@@ -42,7 +42,7 @@ for i in `cat $BAMLIST`; do
         norm=`$SAMTOOLS view -H $i |grep '^@RG' |sed "s/.*SM:\([^\t]*\).*/\1/g" |uniq`
         tum=`$SAMTOOLS view -H $j |grep '^@RG' |sed "s/.*SM:\([^\t]*\).*/\1/g" |uniq`
         OUTDIR=$(readlink -f $MUTECTOUT)/${norm}_${tum}
-        # if [ -d $OUTDIR ]; then continue; fi
+        if [ -d $OUTDIR ]; then continue; fi
         mkdir -p $OUTDIR/logs $OUTDIR/run_status $OUTDIR/tmp
         echo "$norm vs. $tum"
         JID=$(qsub -cwd -o $OUTDIR/logs -q $Q -r y -j y -m a -b y -t 1-25 \

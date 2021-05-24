@@ -24,11 +24,11 @@ BAMLIST=$1
 
 source $TOOLINFO
 
-if [[ "$(head -1 $REF_GENOME)" =~ ^\>chr.* ]]; then
-    CHRS="chrM $(seq -s ' ' -f 'chr%g' 22) chrX chrY"
-else
-    CHRS="$(seq -s ' ' 22) X Y MT"
-fi
+# if [[ "$(head -1 $REF_GENOME)" =~ ^\>chr.* ]]; then
+#     CHRS="chrM -L $(seq -s ' -L ' -f 'chr%g' 22) -L chrX -L chrY"
+# else
+#     CHRS="$(seq -s ' -L ' 22) -L X -L Y -L MT"
+# fi
 
 if [ -z $Q ]; then Q="1-day"; fi
 if [ -z $MUTECTOUT ]; then MUTECTOUT="mutect2.v3"; fi
@@ -47,24 +47,12 @@ for i in `cat $BAMLIST`; do
         rm -f $OUTDIR/${norm}_${tum}.mutect2.v3.vcf*
         mkdir -p $OUTDIR/logs
         echo "$norm vs. $tum"
-        JIDS=()
-        for chr in $CHRS; do
-            if [ -f $OUTDIR/${norm}_${tum}.$chr.mutect2.v3.vcf.gz.tbi ]; then continue; fi
-            rm -f $OUTDIR/${norm}_${tum}.$chr.mutect2.v3.vcf*
-            if [ -z $BED ]; then
-                INTERVALS=$chr
-            else
-                INTERVALS=$OUTDIR/intervals_$chr.bed
-                grep -w ^$chr $BED > $INTERVALS
-            fi
-            JID=$(/usr/local/sOGE/sge-8.1.9/bin/lx-amd64/qsub \
-                    -wd $OUTDIR/logs -q $Q -r y -m a -b y \
-                    -l h_vmem=20G -l h_stack=10M -N mutect2.v3.${norm}_${tum}.$chr \
-                    /research/bsi/tools/pipelines/genome_gps/5.0.2/scripts/mutect2.sh \
-                      -b $i -T $TOOLINFO -o $OUTDIR -v ${norm}_${tum}.$chr.mutect2.v3.vcf -t $j -M $MEMINFO -l $INTERVALS \
-                  |tee /dev/tty |awk '{split($3, a, "."); print a[1]}')
-            JIDS+=($JID)
-        done
-        qsub -hold_jid $(IFS=,; echo "${JIDS[*]}") -q $Q -o $OUTDIR/logs $(dirname $0)/mutect2.v3.concat_vcfs.sh $OUTDIR "$CHRS" $TOOLINFO
+        if [ -f $OUTDIR/${norm}_${tum}.mutect2.v3.vcf.gz.tbi ]; then continue; fi
+        rm -f $OUTDIR/${norm}_${tum}.mutect2.v3.vcf*
+        /usr/local/sOGE/sge-8.1.9/bin/lx-amd64/qsub \
+          -wd $OUTDIR/logs -q $Q -r y -m a -b y \
+          -l h_vmem=20G -l h_stack=10M -N mutect2.v3.${norm}_${tum} \
+          /research/bsi/tools/pipelines/genome_gps/5.0.2/scripts/mutect2.sh \
+            -b $i -T $TOOLINFO -o $OUTDIR -v ${norm}_${tum}.mutect2.v3.vcf.gz -t $j -M $MEMINFO
     done
 done
