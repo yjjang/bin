@@ -39,7 +39,7 @@ printf -- "---\n[$(date)] Start Mutect2 calling: $NSM - $TSM, $CHR\n"
 if [[ -f $DONE1 ]]; then
     echo "Skip the Mutect2 calling."
 else
-    $GATK4 --java-options "-Xmx25G -Djava.io.tmpdir=$OUTDIR/tmp -XX:-UseParallelGC" Mutect2 \
+    $GATK4 --java-options "-Xmx12G -Djava.io.tmpdir=$OUTDIR/tmp -XX:-UseParallelGC" Mutect2 \
         -R $REF_GENOME \
         -I $TBAM\
         -I $NBAM\
@@ -59,7 +59,7 @@ printf -- "---\n[$(date)] Start FilterMutectCalls: $NSM - $TSM, $CHR\n"
 if [[ -f $DONE2 ]]; then
     echo "Skip the FilterMutectCalls."
 else
-    $GATK4 --java-options "-Xmx25G -Djava.io.tmpdir=$OUTDIR/tmp -XX:-UseParallelGC" \
+    $GATK4 --java-options "-Xmx12G -Djava.io.tmpdir=$OUTDIR/tmp -XX:-UseParallelGC" \
         FilterMutectCalls -V $CHR_RAW_VCF -O $CHR_VCF -R $REF_GENOME
     touch $DONE2
 fi

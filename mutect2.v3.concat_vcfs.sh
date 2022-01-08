@@ -22,8 +22,8 @@ printf -- "---\n[$(date)] Start making the final VCF file at $1.\n"
 
 zcat $OUTDIR/$PAIR.$(echo $CHRS |cut -f1 -d ' ').mutect2.v3.vcf.gz |grep "^#" > $OUTDIR/tmp.vcf
 zcat $OUTDIR/$PAIR.*.mutect2.v3.vcf.gz |grep -v "^#" |sort -k1,1V -k2,2n >> $OUTDIR/tmp.vcf
-$BCFTOOLS/bcftools view -O z -o $OUTDIR/$PAIR.mutect2.v3.vcf.gz $OUTDIR/tmp.vcf
-$BCFTOOLS/bcftools index -t $OUTDIR/$PAIR.mutect2.v3.vcf.gz
+$BCFTOOLS/bcftools view -O z -o $OUTDIR/$PAIR.mutect2.vcf.gz $OUTDIR/tmp.vcf
+$BCFTOOLS/bcftools index -t $OUTDIR/$PAIR.mutect2.vcf.gz
 rm $OUTDIR/tmp.vcf
 rm $OUTDIR/$PAIR.*.mutect2.v3.vcf.{gz,gz.tbi,idx}
 rm -f $OUTDIR/intervals_*.bed

@@ -1,6 +1,6 @@
 #!/bin/bash
 #$ -cwd
-#$ -pe threaded 32
+#$ -pe threaded 16
 #$ -j y
 #$ -o logs
 #$ -l h_vmem=1G

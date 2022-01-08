@@ -23,10 +23,12 @@ SAMPLE_LIST=$1
 
 source $TOOLINFO
 
-if [[ "$(head -1 $REF_GENOME)" =~ ^\>chr.* ]]; then
+if [[ "$(head -1 $REF_GENOME)" =~ ^\>chrM ]]; then # hg19
     CHRS="chrM:$(seq -s ':' -f 'chr%g' 22):chrX:chrY"
+elif [[ "$(head -1 $REF_GENOME)" =~ ^\>chr1.* ]]; then # hg38
+    CHRS="$(seq -s ':' -f 'chr%g' 22):chrX:chrY:chrM"
 else
-    CHRS="$(seq -s ':' 22):X:Y:MT"
+    CHRS="$(seq -s ':' 22):X:Y:MT" # b37
 fi
 
 if [ -z $Q ]; then Q="1-day"; fi
@@ -40,7 +42,7 @@ grep -v ^# $SAMPLE_LIST |while read SM NBAM TBAM; do
     mkdir -p $OUTDIR/logs $OUTDIR/run_status $OUTDIR/tmp
     echo "Paired somatic calling for $SM ($NSM vs. $TSM) ..."
     JID=$(qsub -cwd -o $OUTDIR/logs -q $Q -r y -j y -m a -b y -t 1-25 \
-               -l h_vmem=40G -l h_stack=10M -N mutect2.paired.$SM \
+               -l h_vmem=20G -l h_stack=10M -N mutect2.paired.$SM \
                $(dirname $0)/mutect2.sh \
                $NSM $NBAM $TSM $TBAM $OUTDIR "$CHRS" $TOOLINFO $BED \
                |tee /dev/tty |awk '{split($3, a, "."); print a[1]}')

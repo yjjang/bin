@@ -19,15 +19,17 @@ if [ -z $TOOLINFO ] || [ $# -lt 1 ]; then
 fi
 
 TOOLINFO=`readlink -f $TOOLINFO`
-MEMINFO=/research/bsi/tools/pipelines/genome_gps/5.0.2/scripts/config/memory_info.txt
+MEMINFO=/research/bsi/tools/pipelines/genome_gps/5.0.3/scripts/config/memory_info.txt
 BAMLIST=$1
 
 source $TOOLINFO
 
-if [[ "$(head -1 $REF_GENOME)" =~ ^\>chr.* ]]; then
+if [[ "$(head -1 $REF_GENOME)" =~ ^\>chrM ]]; then # hg19
     CHRS="chrM $(seq -s ' ' -f 'chr%g' 22) chrX chrY"
+elif [[ "$(head -1 $REF_GENOME)" =~ ^\>chr1.* ]]; then # hg38
+    CHRS="$(seq -s ' ' -f 'chr%g' 22) chrX chrY chrM"
 else
-    CHRS="$(seq -s ' ' 22) X Y MT"
+    CHRS="$(seq -s ' ' 22) X Y MT" # b37
 fi
 
 if [ -z $Q ]; then Q="1-day"; fi
@@ -60,7 +62,7 @@ for i in `cat $BAMLIST`; do
             JID=$(/usr/local/sOGE/sge-8.1.9/bin/lx-amd64/qsub \
                     -wd $OUTDIR/logs -q $Q -r y -m a -b y \
                     -l h_vmem=20G -l h_stack=10M -N mutect2.v3.${norm}_${tum}.$chr \
-                    /research/bsi/tools/pipelines/genome_gps/5.0.2/scripts/mutect2.sh \
+                    /research/bsi/tools/pipelines/genome_gps/5.0.3/scripts/mutect2.sh \
                       -b $i -T $TOOLINFO -o $OUTDIR -v ${norm}_${tum}.$chr.mutect2.v3.vcf -t $j -M $MEMINFO -l $INTERVALS \
                   |tee /dev/tty |awk '{split($3, a, "."); print a[1]}')
             JIDS+=($JID)
